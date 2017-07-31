@@ -107,9 +107,10 @@ namespace CsePlayer
 
             foreach (var q in queries)
             {
-                CseResponse cseResponse = GetCseReponse(q);
-                BackupCseResponse(q, cseResponse);
+                string cseResponseString = GetCseReponse(q);
+                BackupCseResponse(q, cseResponseString);
 
+                CseResponse cseResponse = JsonConvert.DeserializeObject<CseResponse>(cseResponseString);
                 Serp newSerp = GenerateSerp(q, cseResponse);
                 scrape.Serps.Add(newSerp);
             }
@@ -153,7 +154,7 @@ namespace CsePlayer
             return ret;
         }
 
-        public static CseResponse GetCseReponse(Query query)
+        public static string GetCseReponse(Query query)
         {
             string domainUrl = @"https://www.googleapis.com/customsearch/v1?{0}";
             using (var client = new HttpClient(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate }))
@@ -171,14 +172,28 @@ namespace CsePlayer
                 HttpResponseMessage response = client.GetAsync(apiUrl).Result;
                 response.EnsureSuccessStatusCode();
                 string result = response.Content.ReadAsStringAsync().Result;
-                CseResponse cseResponse = JsonConvert.DeserializeObject<CseResponse>(result);
-                return cseResponse;
+                return result;
             }
         }
 
-        public static void BackupCseResponse(Query query, CseResponse cseResponse)
+        public static void BackupCseResponse(Query query, string cseResponseString)
         {
-            
+            const string ConnStr = "ddd";
+
+            using (CseDbContext db = new CseDbContext(ConnStr))
+            {
+                CseDbRecord dbRecord = new CseDbRecord
+                {
+                    QueryId = query.QueryId,
+                    CreatedTime = DateTime.UtcNow,
+                    QueryText = query.QueryText,
+                    Market = query.Market,
+                    CseResponse = cseResponseString,
+                };
+
+                db.CseDbRecords.Add(dbRecord);
+                db.SaveChanges();
+            }
         }
     }
 }

@@ -10,16 +10,25 @@
 namespace CsePlayer
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using System.Data.Entity;
 
-    public class OmUhrsDbContext : DbContext
+    public class CseDbContext : DbContext
     {
         public DbSet<CseDbRecord> CseDbRecords { get; set; }
+
+        public CseDbContext(string connectionString)
+            : base(connectionString)
+        {
+        }
     }
 
     public class CseDbRecord
     {
-        public long Id { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public string QueryId { get; set; }
 
         public DateTimeOffset CreatedTime { get; set; }
 
